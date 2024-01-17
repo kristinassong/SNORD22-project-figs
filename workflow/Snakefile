@@ -1,0 +1,26 @@
+__author__ = "Kristina Song"
+__email__ = "kristina.song@usherbrooke.ca"
+
+
+import os
+
+
+##### store paths and user-specific variables #####
+configfile: "config/config.yaml"
+
+
+#############################
+## Load rules
+#############################
+
+include: "rules/interaction_profiles.smk"
+
+
+#############################
+## Target rules
+#############################
+
+rule all:
+    input:
+        binding_motifs = expand("results/interaction_profiles/{gene}/motifs/meme.html", gene=config['gene']),
+        #flanking_exons = expand("results/interaction_profiles/{gene}/flanking_exons/{gene}.prop.svg", gene=['ENSG00000277194'])

@@ -1,0 +1,12 @@
+channels:
+  - default
+  - conda-forge
+  - bioconda
+dependencies:
+  - pandas=2.1.4
+  - pybedtools=0.9.1
+  - pyranges=0.0.129
+  - matplotlib=3.8.2
+  - numpy=1.26.3
+  - seaborn=0.12.2
+  - multiprocess=0.70.15

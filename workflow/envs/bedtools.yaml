@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - libgcc-ng=13.2.0
+  - bedtools=2.31.1
