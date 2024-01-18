@@ -1,3 +1,4 @@
+gtf: /home/kris98/scratch/annotation_datasets/Homo_sapiens.GRCh38.110_snoRNAs_tRNAs.gtf
 genome_fasta: /home/kris98/scratch/annotation_datasets/Homo_sapiens.GRCh38.110.dna.primary_assembly.fa
 virtualenv: /home/kris98/venv3.11/bin/activate
 

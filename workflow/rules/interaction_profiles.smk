@@ -1,28 +1,30 @@
-"""
 rule flanking_exons:
-    # Raw predictions should be used, not the merged file
-    input:
-        config['sno_interactions']
-    output:
-        "results/interaction_profiles/{sno}/flanking_exons/{sno}.prop.svg"
-    params:
-        gtf = 
-    conda:
-        "../envs/interactions.yaml"
-    message:
-        "Collapse all {wildcards.sno} binding interactions and plot interaction profiles inside the exons and in the 100 nts upstream and downstream exons."
-    script:
-        "../scripts/nts_flanking_exons.py"
-"""
-
-rule get_fasta:
     input:
         "resources/interactions_bed/{gene}.bed"
     output:
-        "results/interaction_profiles/{gene}/motifs/{gene}.fa"
+        "results/interaction_profiles/{gene}/flanking_exons/{gene}.prop.svg"
+    params:
+        gtf = config['gtf'],
+        out_dir = "results/interaction_profiles/{gene}/flanking_exons",
+        gene = "{gene}"
+    threads:
+        8
+    conda:
+        "../envs/interactions.yaml"
+    message:
+        "Collapse all {wildcards.gene} binding interactions and plot interaction profiles inside the exons and in the 100 nts upstream and downstream exons."
+    script:
+        "../scripts/nts_flanking_exons.py"
+
+
+rule get_fasta:
+    input:
+        "resources/interactions_bed/original/{gene}.bed"
+    output:
+        "results/interaction_profiles/original/{gene}/motifs/{gene}.fa"
     params:
         genome_fasta = config['genome_fasta'],
-        temp_bed = "results/interaction_profiles/{gene}/motifs/{gene}_temp.bed"
+        temp_bed = "results/interaction_profiles/original/{gene}/motifs/{gene}_temp.bed"
     conda:
         "../envs/bedtools.yaml"
     message:
@@ -37,9 +39,9 @@ rule motifs:
     input:
         rules.get_fasta.output
     output:
-        "results/interaction_profiles/{gene}/motifs/meme.html"
+        "results/interaction_profiles/original/{gene}/motifs/meme.html"
     params:
-        out_dir = "results/interaction_profiles/{gene}/motifs",
+        out_dir = "results/interaction_profiles/original/{gene}/motifs",
         virtualenv = config['virtualenv']
     message:
         "Obtain {wildcards.gene} binding motifs using MEME."

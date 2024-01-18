@@ -22,5 +22,5 @@ include: "rules/interaction_profiles.smk"
 
 rule all:
     input:
-        binding_motifs = expand("results/interaction_profiles/{gene}/motifs/meme.html", gene=config['gene']),
+        binding_motifs = expand("results/interaction_profiles/original/{gene}/motifs/meme.html", gene=config['gene']),
         #flanking_exons = expand("results/interaction_profiles/{gene}/flanking_exons/{gene}.prop.svg", gene=['ENSG00000277194'])

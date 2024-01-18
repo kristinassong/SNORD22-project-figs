@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+
 """ Adpated from Gabrielle's script """
 """ nts_flanking_exons.py: plot the interaction profiles inside the exons and in the 100 nts upstream and downstream """
 
 
 import pandas as pd
-import sys
 import os
 from pybedtools import BedTool
 import pyranges as pr
@@ -89,11 +89,7 @@ def plot_coverage(df_up, df_exon, df_down, title, outpath, pct_int):
     axes[2] = draw_subplots(df_down, axes[2])
     axes[0].set_ylim(bottom=0)
     plt.subplots_adjust(left=0.05, right=0.95, wspace=0.2)
-    try:
-        snoname = title.split()[1]
-    except IndexError:
-        snoname = 'all'
-    txt = '%.2f%% of %s\npredicted interactions\nfall into these categories' % (pct_int, snoname)
+    txt = '%.2f%% of %s\npredicted interactions\nfall into these categories' % (pct_int, title)
     plt.tight_layout(rect=[0, 0.03, 0.98, 0.9])
     axes[2].text(1, 1.02, txt, transform=axes[2].transAxes, fontsize=10,
         verticalalignment='bottom', horizontalalignment='right')
@@ -127,28 +123,24 @@ def merge_df(df_all, df_to_add):
 
 
 def compute_sno(args):
-    snoid, df_up, df_exon, df_down, int_file, len_dict, norm_factor, nb_windows, nb_exons, outpath, snoname = args
+    geneid, df_up, df_exon, df_down, int_file, len_dict, norm_factor, nb_exons, outpath= args
  
     df_int = pd.read_csv(int_file, sep='\t',
-                         names=['seqname', 'target_window_start', 'target_window_end', 'snoid', 'count',
-                                'strand', 'sno_window_start', 'sno_window_end', 'mean_score', 'min_score',
-                                'max_score', 'target'],
+                         names=['seqname', 'target_window_start', 'target_window_end', 'geneid', 'count', 'strand'],
                          dtype={'seqname': str})
     df_int = df_int[df_int.seqname != 'seqname']  # remove header if present
     df_int[['target_window_start', 'target_window_end']] = df_int[['target_window_start',
                                                                    'target_window_end']].astype(int)
-    df_int = df_int.drop(['target'], axis=1)
+
     df_int = df_int.drop_duplicates()
-    df_int = df_int.drop(['sno_window_start', 'sno_window_end', 'mean_score', 'min_score',
-                          'max_score'], axis=1)
+
     df_int[['count']] = df_int[['count']].astype(float)
-    df_int = df_int[df_int['count'] >= nb_windows]
     df_int['target_window_end'] += 1
     tot_int = len(df_int)
-    if  os.path.exists(os.path.join(outpath, snoid + '_down.csv')):
-        sno_cov_up = pd.read_csv(os.path.join(outpath, snoid + '_up.csv'))
-        sno_cov_exon = pd.read_csv(os.path.join(outpath, snoid + '_exon.csv'))
-        sno_cov_down = pd.read_csv(os.path.join(outpath, snoid + '_down.csv'))
+    if  os.path.exists(os.path.join(outpath, geneid + '_down.csv')):
+        sno_cov_up = pd.read_csv(os.path.join(outpath, geneid + '_up.csv'))
+        sno_cov_exon = pd.read_csv(os.path.join(outpath, geneid + '_exon.csv'))
+        sno_cov_down = pd.read_csv(os.path.join(outpath, geneid + '_down.csv'))
     else:
         cov_up = calc_sno_coverage(df_up, df_int, 'up')
         sno_cov_up = prep_up(cov_up, len_dict, norm_factor)
@@ -158,12 +150,12 @@ def compute_sno(args):
         cov_down = calc_sno_coverage(df_down, df_int, 'down')
         sno_cov_down = prep_down(cov_down, len_dict, norm_factor)
 
-        sno_cov_up.to_csv(os.path.join(outpath, snoid + '_up.csv'), index=False)
-        sno_cov_exon.to_csv(os.path.join(outpath, snoid + '_exon.csv'), index=False)
-        sno_cov_down.to_csv(os.path.join(outpath, snoid + '_down.csv'), index=False)
+        sno_cov_up.to_csv(os.path.join(outpath, geneid + '_up.csv'), index=False)
+        sno_cov_exon.to_csv(os.path.join(outpath, geneid + '_exon.csv'), index=False)
+        sno_cov_down.to_csv(os.path.join(outpath, geneid + '_down.csv'), index=False)
 
     bed_int = BedTool.from_dataframe(df_int[['seqname', 'target_window_start', 'target_window_end',
-                                             'snoid', 'count', 'strand']])
+                                             'geneid', 'count', 'strand']])
     df_all = pd.concat([df_up, df_exon, df_down], sort=True)[['chrom', 'start', 'end', 'name', 'score', 'strand']]
     df_all[['start', 'end']] = df_all[['start', 'end']].astype(int)
     bed_all = BedTool.from_dataframe(df_all)
@@ -171,11 +163,11 @@ def compute_sno(args):
     nb_int = bed_res.count()
     pct_int = nb_int / tot_int * 100
 
-    plot_coverage(sno_cov_up, sno_cov_exon, sno_cov_down, snoid + ' ' + snoname, outpath, pct_int)
+    plot_coverage(sno_cov_up, sno_cov_exon, sno_cov_down, geneid , outpath, pct_int)
     return sno_cov_up , sno_cov_exon, sno_cov_down, tot_int, nb_int
 
 
-def calc_coverage(df_up, df_exon, df_down, int_file, outdir, nb_windows, snolist, nb_threads, sno_dict):
+def calc_coverage(df_up, df_exon, df_down, int_file, outdir, geneid, nb_threads):
     norm_factor = 10E6
     outpath = os.path.join(outdir, 'flanking_exons')
     os.makedirs(outpath, exist_ok=True)
@@ -183,17 +175,17 @@ def calc_coverage(df_up, df_exon, df_down, int_file, outdir, nb_windows, snolist
     len_dict = {}
     len_dict['up'] = df_up.groupby('length').name.count().to_dict()
     len_dict['down'] = df_down.groupby('length').name.count().to_dict()
-
+    """
     all_cov_up = pd.DataFrame(columns=['rel_pos', 'counts'])
     all_cov_down = pd.DataFrame(columns=['rel_pos', 'counts'])
     all_cov_exon =  pd.DataFrame(columns=['rel_pos', 'counts'])
     all_tot = 0
     all_int = 0
-
+    """
     nb_exons = len(df_exon)
     with Pool(nb_threads) as p:
-        res = p.map(compute_sno, [[snoid, df_up, df_exon, df_down, int_file, len_dict, norm_factor,
-                                   nb_windows, nb_exons, outpath, sno_dict[snoid]] for snoid in snolist])
+        res = compute_sno(geneid, df_up, df_exon, df_down, int_file, len_dict, norm_factor, nb_exons, outpath)
+    """
     for res_i in res:
         all_cov_up = merge_df(all_cov_up, res_i[0])
         all_cov_exon = merge_df(all_cov_exon, res_i[1])
@@ -202,7 +194,7 @@ def calc_coverage(df_up, df_exon, df_down, int_file, outdir, nb_windows, snolist
         all_int += res_i[4]
     pct_int = all_int / all_tot * 100
     plot_coverage(all_cov_up, all_cov_exon, all_cov_down, 'All', outpath, pct_int)
-
+    """
 
 def bed_to_df(bed, side):
     """
@@ -240,24 +232,17 @@ def bed_to_df(bed, side):
 
 
 def main():
-    gtf_file = sys.argv[1]
-    int_file = os.path.abspath(sys.argv[2]) # path to predicted interaction files
-    outdir = os.path.abspath(sys.argv[3]) # path to output directory
-    nb_windows = int(sys.argv[4]) # minimal number of consecutive windows
-    snofile = sys.argv[5] #csv file with chromosome and gene_id
-    nb_threads = int(sys.argv[6]) # nb of threads to use in parallel
-    
-    with open(snofile, 'r') as f:
-        snolist = f.readlines()
-    snolist = [i.strip().split(',')[1] for i in snolist]
+    gtf_file = snakemake.params.gtf
+    int_file = snakemake.input[0]
+    outdir = snakemake.params.out_dir
+    geneid = snakemake.params.gene
+    nb_threads = snakemake.threads[0]
 
     # read_gtf
     df_gtf = pr.read_gtf(gtf_file).df
     df_gtf['Chromosome'] = df_gtf['Chromosome'].astype(str)
     df_gtf.rename(columns={'Chromosome':'seqname','Start':'start','End':'end','Strand':'strand','Feature':'feature'},inplace=True)
     chromo_dict = df_gtf[df_gtf.feature == 'gene'].set_index('gene_id').seqname.to_dict()
-    df_sno = df_gtf[(df_gtf.feature == 'gene') & (df_gtf.gene_biotype == 'snoRNA')][['gene_id', 'gene_name']]
-    sno_dict = df_sno.set_index('gene_id').gene_name.to_dict()
 
     # make exon bed
     df_exon = df_gtf[(df_gtf.feature == 'exon') & (df_gtf.gene_biotype == 'protein_coding')].copy(deep=True)
@@ -287,7 +272,7 @@ def main():
     df_down['chrom'] = df_down.chrom.map(chromo_dict)
     df_exon['chrom'] = df_exon.gene_id.map(chromo_dict)
     df_exon = df_exon[['chrom', 'start', 'end', 'name', 'score', 'strand']]
-    calc_coverage(df_up, df_exon, df_down, int_file, outdir, nb_windows, snolist, nb_threads, sno_dict)
+    calc_coverage(df_up, df_exon, df_down, int_file, outdir, geneid, nb_threads)
 
 
 if __name__ == '__main__':
